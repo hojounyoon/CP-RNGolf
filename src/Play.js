@@ -5,7 +5,12 @@ class Play extends Phaser.Scene {
 
     init() {
         // useful variables
-
+        this.SHOT_VELOCITY_X = 200
+        this.SHOT_VELOCITY_Y_MIN = 700
+        this.SHOT_VELOCITY_Y_MAX = 1100
+        this.shotsTaken = 0
+        this.successfulShots = 0
+        this.score = 0
     }
 
     preload() {
@@ -22,20 +27,80 @@ class Play extends Phaser.Scene {
         this.grass = this.add.image(0, 0, 'grass').setOrigin(0)
 
         // add cup
+        this.cup = this.physics.add.sprite(width / 2, height / 10, 'cup')
+        this.cup.body.setCircle(this.cup.width / 4)
+        this.cup.body.setOffset(this.cup.width / 4)
+        this.cup.body.setImmovable(true)
         
         // add ball
+        this.ball = this.physics.add.sprite(width / 2, height - height / 10, 'ball')
+        this.ball.body.setCircle(this.ball.width / 2)
+        this.ball.body.setCollideWorldBounds(true)
+        this.ball.body.setBounce(0.5)
+        this.ball.body.setDamping(true).setDrag(0.5)
 
         // add walls
+        let wallA = this.physics.add.sprite(0, height / 4, 'wall')
+        wallA.setX(Phaser.Math.Between(0 + wallA.width / 2, width - wallA.width / 2))
+        wallA.body.setImmovable(true)
+
+        let wallB = this.physics.add.sprite(0, height / 2, 'wall')
+        wallB.setX(Phaser.Math.Between(0 + wallB.width / 2, width - wallB.width / 2))
+        wallB.body.setImmovable(true)
+
+        this.walls = this.add.group([wallA, wallB])
+
+        // Add text elements
+        this.shotText = this.add.text(10, 10, 'Shots: 0', {
+            fontSize: '24px',
+            fill: '#FFF'
+        })
+
+        this.scoreText = this.add.text(10, 50, 'Score: 0', {
+            fontSize: '24px',
+            fill: '#FFF'
+        })
+
+        this.successRateText = this.add.text(10, 90, 'Success Rate: 0%', {
+            fontSize: '24px',
+            fill: '#FFF'
+        })
 
         // add one-way
+        this.oneWay = this.physics.add.sprite(0, height / 4 * 3, 'oneway')
+        this.oneWay.setX(Phaser.Math.Between(0 + this.oneWay.width / 2, width = this.oneWay.width / 2))
+        this.oneWay.body.setImmovable(true)
+        this.oneWay.body.checkCollision.down = false
 
         // add pointer input
+        this.input.on('pointerdown', (pointer) => {
+            let shotDirection = pointer.y <= this.ball.y ? 1 : -1
+            let shotDirection2 = pointer.x <= this.ball.x ? 1 : -1
+            this.ball.body.setVelocityX(Phaser.Math.Between(-this.SHOT_VELOCITY_X, this.SHOT_VELOCITY_X) * shotDirection2)
+            this.ball.body.setVelocityY(Phaser.Math.Between(this.SHOT_VELOCITY_Y_MIN, this.SHOT_VELOCITY_Y_MAX) * shotDirection)
+
+            this.shotsTaken += 1;
+            this.shotText.setText('Shots: ' + this.shotsTaken);
+        })
 
         // cup/ball collision
+        this.physics.add.collider(this.ball, this.cup, (ball, cup) => {
+            ball.setPosition(width / 2, height - height / 10)
+            ball.body.setVelocity(0, 0);
+
+            this.successfulShots += 1;
+            this.score += 10;
+
+            this.scoreText.setText('Score: ' + this.score);
+            let successRate = (this.shotsTaken === 0) ? 0 : Math.floor((this.successfulShots / this.shotsTaken) * 100);
+            this.successRateText.setText('Success Rate: ' + successRate + '%');
+        })
 
         // ball/wall collision
+        this.physics.add.collider(this.ball, this.walls)
 
         // ball/one-way collision
+        this.physics.add.collider(this.ball, this.oneWay)
     }
 
     update() {
@@ -45,8 +110,8 @@ class Play extends Phaser.Scene {
 /*
 CODE CHALLENGE
 Try to implement at least 3/4 of the following features during the remainder of class (hint: each takes roughly 15 or fewer lines of code to implement):
-[ ] Add ball reset logic on successful shot
-[ ] Improve shot logic by making pointer’s relative x-position shoot the ball in correct x-direction
+[2] Add ball reset logic on successful shot
+[1] Improve shot logic by making pointer’s relative x-position shoot the ball in correct x-direction
 [ ] Make one obstacle move left/right and bounce against screen edges
-[ ] Create and display shot counter, score, and successful shot percentage
+[3] Create and display shot counter, score, and successful shot percentage
 */
